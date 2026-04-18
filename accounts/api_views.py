@@ -11,6 +11,49 @@ from rest_framework import status
 from .models import Cart,CartItem,OrderItem,Order,Product
 from .serializers import ProductSerializer,RegisterSerializer
 
+from .models import CartItem
+from .serializers import CartItemSerializer
+from .cart_utils import get_or_create_cart
+
+
+
+@api_view(['POST'])
+def register_api(request):
+
+    serializer = RegisterSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "User created successfully"})
+
+    return Response(serializer.errors)
+
+
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])   # 🔴 খুব গুরুত্বপূর্ণ
+def api_login(request):
+
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(username=username, password=password)
+
+    if user is None:
+        return Response(
+            {'error': 'Invalid credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    token, created = Token.objects.get_or_create(user=user)
+
+    return Response({
+        'token': token.key,
+        'username': user.username
+    })
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_order_api(request):
@@ -288,224 +331,12 @@ def add_to_cart_api(request):
         cart_item.quantity = quantity
 
     cart_item.save()
-
+    
     return Response({
         "message": "Product added to cart"
     })
+     
     
     
-    
-    
-# =========================
-# Product List + Create API
-# =========================
 
-# =========================
-# API Login (Token Generate)
-# =========================
-@api_view(['POST'])
-@permission_classes([AllowAny])   # 🔴 খুব গুরুত্বপূর্ণ
-def api_login(request):
-
-    username = request.data.get('username')
-    password = request.data.get('password')
-
-    user = authenticate(username=username, password=password)
-
-    if user is None:
-        return Response(
-            {'error': 'Invalid credentials'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-
-    token, created = Token.objects.get_or_create(user=user)
-
-    return Response({
-        'token': token.key,
-        'username': user.username
-    })
-
-# =========================
-# Session SET API
-# =========================
-@api_view(['GET'])
-def set_session(request):
-
-    request.session['username'] = 'Hakim'
-    request.session['role'] = 'student'
-
-    return Response({'message': 'Session data set successfully'})
-
-# =========================
-# Session GET API
-# =========================
-@api_view(['GET'])
-def get_session(request):
-
-    username = request.session.get('username')
-    role = request.session.get('role')
-
-    return Response({
-        'username': username,
-        'role': role
-    })
-    
-
-
-
-
-from .models import CartItem
-from .serializers import CartItemSerializer
-from .cart_utils import get_or_create_cart
-
-
-# =========================
-# CART VIEW API
-# =========================
-@api_view (['GET'])
-@permission_classes ([AllowAny])
-def cart_list_api(request):
-    
-    cart = get_or_create_cart(request)
-
-    items = CartItem.objects.filter(cart=cart)
-
-    serializer = CartItemSerializer(items, many=True)
-
-    total_price = 0
-
-    for item in items:
-        total_price += item.quantity * item.product.price
-
-    return Response({
-        "cart_id": cart.id,
-        "items": serializer.data,
-        "total_price": total_price
-    })
-
-    
-
-
-   
-
-    # 🔥 MAIN LOGIC
-  
-        
-@api_view(['POST'])
-def update_cart_quantity_api(request):
-    product_id=request.data.get("product_id")
-    quantity=request.data.get('quantity')
-    
-    cart=get_or_create_cart(request)
-    
-    try:
-        cart_item=CartItem.objects.get(cart=cart, product_id=product_id)
-    
-    except CartItem.DoesNotExist:
-        return Response({'error': 'Item not found'},status=404)
-    cart_item.quantity=quantity
-    cart_item.save()
-    
-    return Response({'message':'quantity updated','quantity':cart_item.quantity})
-
-
-
-@api_view(['POST'])
-def clear_cart_api(request):
-    cart=get_or_create_cart(request)
-    CartItem.objects.filter(cart=cart).delete()
-    return Response({'message':"Cart cleared"})
-
-
-
-from django.db.models import Q
-
-@api_view(['GET'])
-def product_search_api(request):
-
-    keyword = request.GET.get("keyword")
-
-    products = Product.objects.filter(
-        name__icontains=keyword
-    )
-
-    serializer = ProductSerializer(products, many=True)
-
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-def product_filter_api(request):
-
-    min_price = request.GET.get("min_price")
-    max_price = request.GET.get("max_price")
-
-    products = Product.objects.filter(
-        price__gte=min_price,
-        price__lte=max_price
-    )
-
-    serializer = ProductSerializer(products, many=True)
-
-    return Response(serializer.data)
-
-from django.core.paginator import Paginator
-
-@api_view(['GET'])
-def product_pagination_api(request):
-
-    products = Product.objects.all()
-
-    paginator = Paginator(products, 2)
-
-    page_number = request.GET.get("page")
-
-    page_obj = paginator.get_page(page_number)
-
-    serializer = ProductSerializer(page_obj, many=True)
-
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-def products_select_related_api(request):
-
-    products = Product.objects.select_related('owner')
-
-    serializer = ProductSerializer(products, many=True)
-
-    return Response(serializer.data)
-
-@api_view(['GET'])
-def products_prefetch_related_api(request):
-    products=Product.objects.prefetch_related('tags')
-    serializer=ProductSerializer(products, many=True)
-    return Response(serializer.data)
-
-@api_view(['GET'])
-def products_by_category_api(request, id):
-    products=Product.objects.filter(category_id =id)
-    serializer=ProductSerializer(products,many=True)
-    return Response(serializer.data)
-
-@api_view(['GET'])                                                   
-def products_by_tag_api(request, id):
-    products=Product.objects.filter(tags__id =id)
-    serializer=ProductSerializer(products,many=True)
-    return Response(serializer.data)
-
-
-
-@api_view(['POST'])
-def register_api(request):
-
-    serializer = RegisterSerializer(data=request.data)
-
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"message": "User created successfully"})
-
-    return Response(serializer.errors)
-
-
-      
+ 

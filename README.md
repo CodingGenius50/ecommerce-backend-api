@@ -80,6 +80,7 @@ It includes product management, cart system, order processing, payment simulatio
 | Update Status | ![](screenshots/order_update_status.png) |
 | Payment | ![](screenshots/pay_order.png) |
 | Admin Panel | ![](screenshots/ecommerce_admin.png) |
+| Admin Panel | ![](screenshots/ecommerce_admin1.png) |
 ---
 
 ## ⚙️ Setup Instructions

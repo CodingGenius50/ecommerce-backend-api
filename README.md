@@ -68,6 +68,18 @@ It includes product management, cart system, order processing, payment simulatio
 * POST `/api/order/<id>/cancel/`
 * POST `/api/order/<id>/pay/`
 
+
+## 📸 Screenshots
+| Feature | Preview |
+|--------|--------|
+| Product List | ![](screenshots/products_list.png) |
+| Product Detail | ![](screenshots/product.png) |
+| Create Product | ![](screenshots/create_product.png) |
+| Add to Cart | ![](screenshots/cart_add_product.png) |
+| My Orders | ![](screenshots/my_orders.png) |
+| Update Status | ![](screenshots/order_update_status.png) |
+| Payment | ![](screenshots/pay_order.png) |
+| Admin Panel | ![](screenshots/ecommerce_admin.png) |
 ---
 
 ## ⚙️ Setup Instructions

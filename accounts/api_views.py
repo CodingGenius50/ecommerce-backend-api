@@ -33,7 +33,7 @@ def register_api(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])   # 🔴 খুব গুরুত্বপূর্ণ
+@permission_classes([AllowAny])  
 def api_login(request):
 
     username = request.data.get('username')
@@ -63,39 +63,29 @@ def create_order_api(request):
 
     if not cart_items.exists():
         return Response({'error': 'Cart is empty'}, status=400)
-
-    # ✅ Order create
     order = Order.objects.create(
         user=request.user
     )
-
     total_price = 0
-
-    # 🔥 LOOP START
     for item in cart_items:
         product = item.product
-
-        # ✅ 1. stock check
         if item.quantity > product.stock:
             return Response({
                 "error": f"{product.name} out of stock"
             }, status=400)
-
-        # ✅ 2. stock reduce
+            
         product.stock -= item.quantity
         product.save()
-
-        # ✅ 3. order item create
+        
         OrderItem.objects.create(
             order=order,
             product=product,
             quantity=item.quantity
         )
-
         total_price += product.price * item.quantity
-    # 🔥 LOOP END
+ 
 
-    # ✅ cart empty
+    # cart empty
     cart_items.delete()
 
     return Response({
@@ -104,12 +94,6 @@ def create_order_api(request):
         'total_price': total_price
     })
 
-
-
-
-    
-    
-    
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -145,9 +129,7 @@ def order_details_api(request,order_id):
             'product':item.product.name,
             'price':item.product.price,
             'quantity':item.quantity
-            
         })
-        
     return Response({
         'order_id':order_id,
         'status':order.status,
@@ -156,7 +138,6 @@ def order_details_api(request,order_id):
     })
     
 from rest_framework.permissions import IsAdminUser
-
 @api_view(['PUT'])
 @permission_classes([IsAdminUser])
 def update_order_status(request,order_id):
@@ -265,7 +246,7 @@ def product_list_api(request):
     total = products.count()
     products = products[start:end]
 
-    # 🔥 serializer use
+    # serializer use
     serializer = ProductSerializer(products, many=True)
 
     return Response({
@@ -273,9 +254,6 @@ def product_list_api(request):
         "total": total,
         "results": serializer.data
     })
-  
-    
-
     
 @api_view(['GET'])
 def product_detail_api(request, product_id):
@@ -294,10 +272,6 @@ def product_detail_api(request, product_id):
         "text":p.text
     })    
 
-
-
-    
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_to_cart_api(request):
@@ -310,7 +284,6 @@ def add_to_cart_api(request):
     except Product.DoesNotExist:
         return Response({"error": "Product not found"}, status=404)
 
-    # ✅ stock check
     if product.stock <= 0:
         return Response({"error": "Product out of stock"}, status=400)
 
@@ -318,13 +291,10 @@ def add_to_cart_api(request):
         return Response({"error": "Not enough stock"}, status=400)
 
     cart = get_or_create_cart(request)
-
-    # ✅ FIXED LOGIC
     cart_item, created = CartItem.objects.get_or_create(
         cart=cart,
         product=product
     )
-
     if not created:
         cart_item.quantity += quantity
     else:
